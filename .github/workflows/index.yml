@@ -1,0 +1,32 @@
+name: Bulk Google Indexer
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install googleapis
+      - name: Run Indexer Script
+        run: |
+          node -e "
+          const fs=require('fs'),{google}=require('googleapis');
+          const key=JSON.parse(process.env.JSON_KEY);
+          const jwt=new google.auth.JWT(key.client_email,null,key.private_key,['https://googleapis.com']);
+          jwt.authorize(err=>{
+            if(err) return console.error('Auth Error:',err.message);
+            fs.readFileSync('urls.txt','utf8').split('\n').map(u=>u.trim()).filter(Boolean).forEach(url=>{
+              google.indexing({version:'v3',auth:jwt}).urlNotifications.publish({requestBody:{url,type:'URL_UPDATED'}},(e,r)=>{
+                console.log(url,'->',e?e.message:r.status+' OK')
+              })
+            })
+          });"
+        env:
+          JSON_KEY: ${{ secrets.GOOGLE_INDEXING_KEY }}
+          
