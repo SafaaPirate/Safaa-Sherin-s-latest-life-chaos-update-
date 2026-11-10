@@ -1,8 +1,9 @@
 name: Bulk Google Indexer
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   index:
